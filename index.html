@@ -766,14 +766,12 @@
   async function loadFromGist() {
     document.getElementById('result').textContent = '⏳ 載入設定中⋯';
     try {
-      const headers = { 'Accept': 'application/vnd.github+json' };
-      const token = getToken();
-      if (token) headers['Authorization'] = `token ${token}`;
-      const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, { headers });
-      const data = await res.json();
-      const content = data.files?.[GIST_FILE]?.content;
-      if (content) {
-        const parsed = JSON.parse(content);
+      // 用 raw URL 讀取，不需要 Token
+      const rawUrl = `https://gist.githubusercontent.com/tawang521-tools/${GIST_ID}/raw/${GIST_FILE}`;
+      const res = await fetch(rawUrl + '?t=' + Date.now()); // 加時間戳避免快取
+      const text = await res.text();
+      if (text && text.trim() !== '{}' && text.trim() !== '[]') {
+        const parsed = JSON.parse(text);
         if (Array.isArray(parsed) && parsed.length > 0) {
           CATEGORIES.length = 0;
           parsed.forEach(c => CATEGORIES.push(c));
