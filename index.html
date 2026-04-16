@@ -755,6 +755,58 @@
     {bg:'linear-gradient(135deg,#e8f0f8,#cfd8f0)', dot:'#6888c8'},
   ];
 
+  /* ── 雲端設定 ── */
+  const GIST_ID    = '94dbc5e7325f8a98aeeead9bc4614bf8';
+  const GIST_FILE  = 'zha-sha-mi-data.json';
+  const EDIT_PASSWORD = '12345';
+
+  function getToken() { return localStorage.getItem('zsm_token'); }
+  function setToken(t) { localStorage.setItem('zsm_token', t); }
+
+  async function loadFromGist() {
+    document.getElementById('result').textContent = '⏳ 載入設定中⋯';
+    try {
+      const headers = { 'Accept': 'application/vnd.github+json' };
+      const token = getToken();
+      if (token) headers['Authorization'] = `token ${token}`;
+      const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, { headers });
+      const data = await res.json();
+      const content = data.files?.[GIST_FILE]?.content;
+      if (content) {
+        const parsed = JSON.parse(content);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          CATEGORIES.length = 0;
+          parsed.forEach(c => CATEGORIES.push(c));
+        }
+      }
+    } catch(e) {
+      console.log('載入雲端設定失敗，使用預設值');
+    }
+    activeCategory = 0;
+    renderTabs(); renderOptions(); updatePanel(); initSlot();
+    document.getElementById('result').textContent = '選好場合，再按轉！🎯';
+  }
+
+  async function saveToGist() {
+    const token = getToken();
+    if (!token) { alert('找不到存取金鑰，請重新登入編輯模式'); return; }
+    try {
+      const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `token ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          files: { [GIST_FILE]: { content: JSON.stringify(CATEGORIES) } }
+        })
+      });
+      if (!res.ok) throw new Error();
+    } catch(e) {
+      alert('儲存失敗，請檢查網路連線或重新輸入 token');
+    }
+  }
+
   /* ── App state ── */
   let activeCategory = 0, isEditing = false, isSpinning = false;
   let currentC = 0, currentTY = 0, needsReset = false, lastWinIndex = 0;
@@ -1303,6 +1355,7 @@
     document.getElementById('editToggleBtn').classList.remove('active');
     renderTabs(); renderOptions(); updatePanel(); initSlot();
     document.getElementById('result').textContent = '選好場合，再按轉！🎯';
+    saveToGist();
   }
 
   function selectCategory(i) {
@@ -1325,6 +1378,17 @@
      OPTIONS PANEL
   ════════════════════════════════════════ */
   function toggleEdit() {
+    const pw = prompt('請輸入編輯密碼：');
+    if (pw === null) return;
+    if (pw !== EDIT_PASSWORD) { alert('密碼錯誤！'); return; }
+
+    // 若此裝置尚未儲存 token，要求輸入一次
+    if (!getToken()) {
+      const t = prompt('首次在此裝置編輯，請貼上你的 GitHub Token（之後不需重複輸入）：');
+      if (!t) { alert('未輸入 Token，無法儲存設定'); return; }
+      setToken(t.trim());
+    }
+
     isEditing = true;
     document.getElementById('optionsCard').classList.add('editing');
     document.getElementById('editToggleBtn').classList.add('active');
@@ -1340,6 +1404,7 @@
     document.getElementById('optionsCard').classList.remove('editing');
     document.getElementById('editToggleBtn').classList.remove('active');
     renderTabs(); renderOptions(); initSlot();
+    saveToGist();
   }
 
   function renderOptions() {
@@ -1502,7 +1567,7 @@
   }
 
   /* ── Init ── */
-  renderTabs(); renderOptions(); updatePanel(); initSlot();
+  loadFromGist();
 
   // 事件委派：點 📋 開菜單（strip 會重建，用 slot-window 做委派根）
   // 轉盤上的 📋 → 唯讀瀏覽
