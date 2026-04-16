@@ -1,0 +1,1517 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>呷啥咪轉盤</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --card: #ffffff;
+      --orange: #f5a623;
+      --orange2: #f97316;
+      --peach: #ffe4c8;
+      --peach2: #ffd4a8;
+      --text: #5a3e28;
+      --muted: #b89880;
+      --border: #f0ddc8;
+      --shadow: rgba(180,120,60,0.10);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(160deg, #fff4e6 0%, #ffe9d0 40%, #fef3e8 100%);
+      font-family: 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+      color: var(--text);
+      display: flex; flex-direction: column; align-items: center;
+      padding: 24px 16px 48px;
+    }
+
+    /* ── Header ── */
+    .top-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .top-bar h1 {
+      font-size: 1.7rem; font-weight: 900; color: var(--orange2); letter-spacing: 3px;
+      text-shadow: 0 2px 0 #fff, 0 3px 0 rgba(249,115,22,0.2);
+    }
+    .top-deco { font-size: 1.5rem; }
+    .subtitle { font-size: 0.82rem; color: var(--muted); letter-spacing: 1px; margin-bottom: 22px; }
+
+    /* ── Category pills ── */
+    .cat-row { display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; justify-content: center; }
+    .cat-pill {
+      display: flex; align-items: center; gap: 6px; padding: 8px 20px;
+      border-radius: 50px; border: 2.5px solid var(--border); background: var(--card);
+      color: var(--muted); font-size: 0.88rem; font-weight: 700;
+      cursor: pointer; font-family: inherit; transition: all 0.18s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .cat-pill:hover { border-color: var(--orange); color: var(--orange2); transform: translateY(-1px); }
+    .cat-pill.active { border-color: transparent; color: #fff; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(249,115,22,0.35); }
+    .cat-pill[data-id="lunch"].active   { background: linear-gradient(135deg,#78bce8,#4fa8d8); }
+    .cat-pill[data-id="dinner"].active  { background: linear-gradient(135deg,#7ecb8f,#4cb86a); }
+    .cat-pill[data-id="holiday"].active { background: linear-gradient(135deg,#f97316,#f5a623); }
+    .cat-pill .pill-count {
+      background: var(--peach); color: var(--orange);
+      border-radius: 20px; padding: 1px 7px; font-size: 0.72rem; font-weight: 700;
+    }
+    .cat-pill.active .pill-count { background: rgba(255,255,255,0.25); color: #fff; }
+
+    /* active pill: inline rename input */
+    .cat-pill.active { gap: 5px; }
+    .pill-icon-btn {
+      font-size: 1.1rem; cursor: pointer; flex-shrink: 0; line-height: 1;
+      transition: transform 0.15s; border: none; background: transparent; padding: 0;
+    }
+    .cat-pill.active .pill-icon-btn:hover { transform: scale(1.3) rotate(15deg); }
+    .pill-name-inp {
+      background: transparent; border: none; border-bottom: 1.5px solid rgba(255,255,255,0.5);
+      color: #fff; font-family: inherit; font-size: 0.88rem; font-weight: 700;
+      outline: none; min-width: 3em; max-width: 140px; padding: 0 2px;
+    }
+    .pill-name-inp::placeholder { color: rgba(255,255,255,0.55); }
+    .pill-del-btn {
+      background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.3);
+      color: #fff; border-radius: 50%; width: 18px; height: 18px;
+      cursor: pointer; font-size: 0.7rem; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s; padding: 0;
+    }
+    .pill-del-btn:hover:not(:disabled) { background: rgba(255,80,80,0.45); border-color: rgba(255,80,80,0.5); }
+    .pill-del-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+
+    /* add-category pill */
+    .cat-pill-add {
+      display: flex; align-items: center; gap: 4px;
+      padding: 8px 16px; border-radius: 50px;
+      border: 2px dashed var(--border); background: transparent;
+      color: var(--muted); font-size: 0.85rem; font-weight: 700;
+      cursor: pointer; font-family: inherit; transition: all 0.18s;
+    }
+    .cat-pill-add:hover {
+      border-color: var(--orange); color: var(--orange2);
+      background: rgba(255,230,200,0.2); transform: translateY(-1px);
+    }
+
+    /* ── Main layout ── */
+    .main { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; align-items: flex-start; width: 100%; max-width: 880px; }
+
+    /* ── Slot card ── */
+    .slot-card {
+      background: var(--card); border-radius: 28px; padding: 24px 24px 20px;
+      box-shadow: 0 6px 30px var(--shadow), 0 1px 0 #fff inset;
+      border: 1.5px solid var(--border);
+      display: flex; flex-direction: column; align-items: center; gap: 18px;
+    }
+    .slot-wrapper { position: relative; width: 300px; height: 324px; }
+    .slot-window {
+      position: absolute; inset: 0; overflow: hidden;
+      border-radius: 20px; background: #fdf9f5; border: 1.5px solid var(--border);
+    }
+    .slot-strip {
+      position: absolute; top: 0; left: 0; width: 100%;
+      display: flex; flex-direction: column; gap: 12px; will-change: transform;
+    }
+    .slot-item { width: 100%; height: 100px; flex-shrink: 0; overflow: hidden; display: flex; flex-direction: column; }
+    .slot-item-img {
+      flex: 1; display: flex; align-items: center; padding: 0 18px;
+      font-size: 2.6rem; position: relative; overflow: hidden;
+    }
+    .slot-item-img.has-img {
+      padding: 0; background-size: cover !important; background-position: center !important;
+    }
+    .slot-item-img.has-img::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(to right, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.05) 60%, transparent 100%);
+    }
+    .slot-item-info {
+      height: 36px; background: #fff; display: flex; align-items: center;
+      padding: 0 14px; font-weight: 700; font-size: 0.9rem; color: var(--text);
+      border-top: 1px solid rgba(240,220,200,0.6); gap: 6px;
+    }
+    .item-cat   { font-size: 0.95rem; flex-shrink: 0; line-height: 1; }
+    .item-label { flex: 1; }
+    .item-menu-btn {
+      width: 26px; height: 26px; flex-shrink: 0;
+      background: var(--peach); border: 1.5px solid var(--peach2);
+      border-radius: 7px; cursor: pointer; font-size: 0.82rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s; padding: 0;
+    }
+    .item-menu-btn:hover { background: var(--peach2); border-color: var(--orange); }
+    .slot-fade { position: absolute; left: 0; right: 0; pointer-events: none; z-index: 2; border-radius: 20px; }
+    .slot-fade-top    { top: 0;    height: 108px; background: linear-gradient(to bottom, rgba(253,249,245,0.97) 0%, rgba(253,249,245,0.6) 55%, transparent 100%); }
+    .slot-fade-bottom { bottom: 0; height: 108px; background: linear-gradient(to top,   rgba(253,249,245,0.97) 0%, rgba(253,249,245,0.6) 55%, transparent 100%); }
+    .slot-selector {
+      position: absolute; left: -1px; right: -1px; top: 111px; height: 102px;
+      border: 2.5px solid var(--orange2); border-radius: 6px;
+      z-index: 3; pointer-events: none; box-shadow: 0 0 0 4px rgba(249,115,22,0.08);
+    }
+    .slot-selector::before, .slot-selector::after {
+      content: ''; position: absolute; top: 50%; transform: translateY(-50%);
+      width: 7px; height: 7px; background: var(--orange2); border-radius: 50%;
+    }
+    .slot-selector::before { left: -4px; }
+    .slot-selector::after  { right: -4px; }
+    .result-box {
+      width: 300px; min-height: 50px; display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; font-weight: 700; color: var(--orange2);
+      background: linear-gradient(135deg,#fff9f4,#fff4ea); border: 2px solid var(--peach2);
+      border-radius: 16px; padding: 10px 20px; text-align: center;
+    }
+    .spin-btn {
+      width: 300px; padding: 13px; font-size: 1.1rem; font-weight: 900; letter-spacing: 3px;
+      background: linear-gradient(135deg,#f97316,#f5a623); color: #fff; border: none;
+      border-radius: 50px; cursor: pointer; font-family: inherit; transition: all 0.15s;
+      box-shadow: 0 4px 0 #c8600a, 0 6px 18px rgba(249,115,22,0.35);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    }
+    .spin-btn:hover  { transform: translateY(-2px); box-shadow: 0 6px 0 #c8600a, 0 10px 24px rgba(249,115,22,0.4); }
+    .spin-btn:active { transform: translateY(2px);  box-shadow: 0 2px 0 #c8600a; }
+    .spin-btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: 0 3px 0 #c8600a; }
+
+    /* ── Options card ── */
+    .options-card {
+      background: var(--card); border-radius: 28px; padding: 22px 18px 18px;
+      box-shadow: 0 6px 30px var(--shadow), 0 1px 0 #fff inset;
+      border: 1.5px solid var(--border); width: 272px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .options-title { display: flex; align-items: center; gap: 8px; padding-bottom: 8px; border-bottom: 1.5px dashed var(--border); }
+    .options-title .icon-circle {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0;
+    }
+    .options-title .title-text { flex: 1; font-size: 0.9rem; font-weight: 700; color: var(--text); }
+    .edit-toggle-btn {
+      width: 28px; height: 28px; border-radius: 8px; border: 1.5px solid var(--border);
+      background: #fdf9f5; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem; transition: all 0.15s; flex-shrink: 0; color: var(--muted);
+    }
+    .edit-toggle-btn:hover, .edit-toggle-btn.active { background: var(--peach); border-color: var(--orange); color: var(--orange2); }
+
+    .option-list { display: flex; flex-direction: column; gap: 8px; max-height: 360px; overflow-y: auto; padding-right: 2px; }
+    .option-list::-webkit-scrollbar { width: 3px; }
+    .option-list::-webkit-scrollbar-thumb { background: var(--peach2); border-radius: 10px; }
+
+    .option-item { display: flex; align-items: center; gap: 7px; }
+
+    /* swatch */
+    .opt-swatch {
+      width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0;
+      position: relative; overflow: hidden;
+      background-size: cover; background-position: center;
+      border: 1.5px solid rgba(240,220,200,0.5);
+      transition: border-color 0.15s;
+    }
+    .opt-swatch .cam-hint {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; background: rgba(255,255,255,0.72);
+      opacity: 0; transition: opacity 0.15s; pointer-events: none;
+    }
+    .options-card.editing .opt-swatch { cursor: pointer; border-color: var(--border); }
+    .options-card.editing .opt-swatch:hover { border-color: var(--orange); }
+    .options-card.editing .opt-swatch:not(.has-img) .cam-hint { opacity: 0.5; font-size: 11px; }
+    .options-card.editing .opt-swatch:hover .cam-hint { opacity: 1; }
+
+    /* inputs */
+    .option-item input[type="text"] {
+      flex: 1; min-width: 0; border-radius: 10px; padding: 6px 10px; font-size: 0.85rem;
+      font-family: inherit; outline: none; transition: all 0.2s;
+      background: #f0ece8; border: 1.5px solid transparent;
+      color: #a08878; cursor: default; pointer-events: none; user-select: none;
+    }
+    .options-card.editing .option-item input[type="text"] {
+      background: #fdf9f5; border: 1.5px solid var(--border);
+      color: var(--text); cursor: text; pointer-events: auto; user-select: auto;
+    }
+    .options-card.editing .option-item input[type="text"]:focus {
+      border-color: var(--orange); box-shadow: 0 0 0 3px rgba(245,166,35,0.12);
+    }
+
+    /* clear image btn */
+    .clr-btn {
+      background: #fff0f0; border: 1.5px solid #ffd5d5; color: #e08080;
+      border-radius: 7px; width: 26px; height: 26px; cursor: pointer; font-size: 0.75rem;
+      display: none; align-items: center; justify-content: center;
+      transition: all 0.15s; flex-shrink: 0;
+    }
+    .options-card.editing .option-item.has-img .clr-btn { display: flex; }
+    .clr-btn:hover { background: #ffe0e0; border-color: #ffb8b8; color: #c05050; }
+
+    /* menu btn on option item */
+    .menu-opt-btn {
+      background: var(--peach); border: 1.5px solid var(--peach2); color: var(--orange2);
+      border-radius: 8px; width: 26px; height: 26px; cursor: pointer; font-size: 0.78rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s; flex-shrink: 0;
+    }
+    .menu-opt-btn:hover { background: var(--peach2); border-color: var(--orange); }
+
+    /* delete btn */
+    .del-btn {
+      background: #fff0f0; border: 1.5px solid #ffd5d5; color: #e08080;
+      border-radius: 8px; width: 26px; height: 26px; cursor: pointer; font-size: 0.9rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s; flex-shrink: 0; opacity: 0; pointer-events: none;
+    }
+    .options-card.editing .del-btn { opacity: 1; pointer-events: auto; }
+    .del-btn:hover { background: #ffe0e0; border-color: #ffb8b8; color: #c05050; }
+
+    .add-btn, .save-btn {
+      width: 100%; padding: 8px; border-radius: 10px; cursor: pointer;
+      font-size: 0.82rem; font-family: inherit; font-weight: 700; transition: all 0.15s; letter-spacing: 1px;
+    }
+    .add-btn { background: #fdf9f5; border: 1.5px dashed var(--peach2); color: var(--orange); display: none; }
+    .options-card.editing .add-btn { display: block; }
+    .add-btn:hover { background: var(--peach); border-color: var(--orange); }
+    .save-btn {
+      background: linear-gradient(135deg,#f97316,#f5a623); border: none; color: #fff;
+      box-shadow: 0 3px 0 #c8600a, 0 5px 14px rgba(249,115,22,0.3);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.12); display: none;
+    }
+    .options-card.editing .save-btn { display: block; }
+    .save-btn:hover  { transform: translateY(-1px); box-shadow: 0 5px 0 #c8600a, 0 8px 18px rgba(249,115,22,0.35); }
+    .save-btn:active { transform: translateY(1px);  box-shadow: 0 2px 0 #c8600a; }
+
+    /* ════════════════════════════════
+       MENU MODAL
+    ════════════════════════════════ */
+    .menu-modal {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0.6);
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .menu-modal.hidden { display: none; }
+
+    .menu-box {
+      background: #fff; border-radius: 22px; padding: 22px;
+      width: 100%; max-width: 360px;
+      display: flex; flex-direction: column; gap: 12px;
+      max-height: 80vh;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    .menu-header { display: flex; align-items: center; gap: 10px; }
+    .menu-header-icon {
+      font-size: 1.3rem;
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .menu-header h2 { flex: 1; font-size: 1rem; font-weight: 900; color: var(--text); }
+    .menu-close-x {
+      width: 28px; height: 28px; border-radius: 50%;
+      border: 1.5px solid var(--border); background: #fdf9f5;
+      cursor: pointer; font-size: 0.9rem; color: var(--muted);
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s; flex-shrink: 0;
+    }
+    .menu-close-x:hover { background: #ffe0e0; border-color: #ffb8b8; color: #c05050; }
+
+    .menu-divider { height: 1.5px; background: var(--border); border-radius: 1px; }
+
+    .menu-body {
+      overflow-y: auto; display: flex; flex-direction: column; gap: 7px;
+      min-height: 40px;
+    }
+    .menu-body::-webkit-scrollbar { width: 3px; }
+    .menu-body::-webkit-scrollbar-thumb { background: var(--peach2); border-radius: 10px; }
+
+    .menu-empty {
+      font-size: 0.82rem; color: var(--muted); text-align: center;
+      padding: 16px 0; letter-spacing: 0.5px;
+    }
+
+    .menu-item-row { display: flex; align-items: center; gap: 7px; }
+    .menu-item-row input {
+      background: #fdf9f5; border: 1.5px solid var(--border); border-radius: 8px;
+      color: var(--text); padding: 6px 9px; font-size: 0.85rem; font-family: inherit;
+      outline: none; transition: border-color 0.18s;
+    }
+    .menu-item-row input:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(245,166,35,0.12); }
+    .menu-item-row .inp-name  { flex: 1; }
+    .menu-item-row .inp-price { width: 72px; text-align: right; }
+    .menu-item-del {
+      background: #fff0f0; border: 1.5px solid #ffd5d5; color: #e08080;
+      border-radius: 7px; width: 26px; height: 26px; cursor: pointer; font-size: 0.9rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s; flex-shrink: 0;
+    }
+    .menu-item-del:hover { background: #ffe0e0; border-color: #ffb8b8; color: #c05050; }
+
+    /* photo button inside menu item row */
+    .menu-img-add-btn {
+      background: var(--peach); border: 1.5px solid var(--peach2); color: var(--orange2);
+      border-radius: 7px; width: 28px; height: 28px; cursor: pointer; font-size: 0.82rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s; flex-shrink: 0; padding: 0;
+    }
+    .menu-img-add-btn:hover { background: var(--peach2); border-color: var(--orange); }
+
+    /* image strip below a menu item */
+    .menu-item-block { display: flex; flex-direction: column; gap: 5px; }
+    .menu-item-imgs {
+      display: flex; gap: 8px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      padding: 2px 2px 6px;
+      scrollbar-width: none;
+    }
+    .menu-item-imgs::-webkit-scrollbar { display: none; }
+
+    .menu-img-wrap {
+      position: relative; flex-shrink: 0;
+      width: 80px; height: 80px;
+      border-radius: 10px; overflow: hidden;
+      border: 1.5px solid var(--border);
+      scroll-snap-align: start;
+      cursor: pointer;
+    }
+    .menu-img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .menu-img-del {
+      position: absolute; top: 4px; right: 4px;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: rgba(0,0,0,0.52); border: none; color: #fff;
+      font-size: 0.65rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+    }
+    .menu-img-del:hover { background: rgba(200,0,0,0.7); }
+
+    /* lightbox */
+    .img-lightbox {
+      position: fixed; inset: 0; z-index: 300;
+      background: rgba(0,0,0,0.85);
+      display: flex; align-items: center; justify-content: center;
+      cursor: zoom-out;
+    }
+    .img-lightbox.hidden { display: none; }
+    .img-lightbox img {
+      max-width: 90vw; max-height: 88vh;
+      border-radius: 12px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+      pointer-events: none;
+    }
+
+    .menu-add-btn {
+      width: 100%; padding: 8px; border-radius: 10px; cursor: pointer;
+      font-size: 0.82rem; font-family: inherit; font-weight: 700;
+      background: #fdf9f5; border: 1.5px dashed var(--peach2);
+      color: var(--orange); transition: all 0.15s; letter-spacing: 1px;
+    }
+    .menu-add-btn:hover { background: var(--peach); border-color: var(--orange); }
+
+    .menu-footer-btn {
+      width: 100%; padding: 9px; border-radius: 10px;
+      border: 1.5px solid var(--border); background: #fdf9f5;
+      color: var(--muted); font-family: inherit; font-size: 0.88rem;
+      font-weight: 700; cursor: pointer; transition: all 0.15s; letter-spacing: 1px;
+    }
+    .menu-footer-btn:hover { background: var(--peach); color: var(--text); }
+
+    /* read-only menu item row */
+    .menu-view-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 12px; border-radius: 10px;
+      background: #fdf9f5; border: 1.5px solid var(--border);
+    }
+    .mv-name { flex: 1; font-size: 0.88rem; color: var(--text); font-weight: 500; }
+    .mv-price { font-size: 0.82rem; color: var(--orange2); font-weight: 700; white-space: nowrap; }
+
+    /* ── Menu mode tabs ── */
+    .menu-tabs { display: flex; gap: 6px; }
+    .menu-tab-btn {
+      flex: 1; padding: 8px 6px; border-radius: 10px;
+      font-size: 0.82rem; font-family: inherit; font-weight: 700;
+      cursor: pointer; transition: all 0.15s; letter-spacing: 0.5px;
+      border: 1.5px solid var(--border); background: #fdf9f5; color: var(--muted);
+    }
+    .menu-tab-btn.active {
+      background: linear-gradient(135deg,#f97316,#f5a623);
+      border-color: transparent; color: #fff;
+      box-shadow: 0 2px 8px rgba(249,115,22,0.3);
+    }
+    .menu-tab-btn:not(.active):hover { background: var(--peach); color: var(--text); }
+
+    /* ── Menu photo upload area ── */
+    .menu-photo-grid {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      max-height: 300px; overflow-y: auto; padding: 2px;
+    }
+    .menu-photo-wrap {
+      position: relative; width: 100px; height: 100px;
+      border-radius: 10px; overflow: hidden;
+      border: 1.5px solid var(--border); cursor: pointer;
+      flex-shrink: 0;
+    }
+    .menu-photo-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .menu-photo-del {
+      position: absolute; top: 4px; right: 4px;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: rgba(0,0,0,0.55); border: none; color: #fff;
+      font-size: 0.65rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+    }
+    .menu-photo-del:hover { background: rgba(200,0,0,0.75); }
+    .menu-photo-upload-btn {
+      width: 100px; height: 100px; border-radius: 10px;
+      border: 2px dashed var(--peach2); background: #fdf9f5;
+      color: var(--orange); font-size: 1.5rem;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.15s; gap: 4px;
+    }
+    .menu-photo-upload-btn span { font-size: 0.72rem; font-weight: 700; color: var(--orange2); }
+    .menu-photo-upload-btn:hover { background: var(--peach); border-color: var(--orange); }
+
+    /* ════════════════════════════════
+       CROP MODAL
+    ════════════════════════════════ */
+    .crop-modal {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0.72);
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .crop-modal.hidden { display: none; }
+
+    .crop-box {
+      background: #fff; border-radius: 22px; padding: 22px;
+      width: 100%; max-width: 580px;
+      display: flex; flex-direction: column; gap: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+    }
+
+    .crop-header { display: flex; align-items: center; justify-content: space-between; }
+    .crop-header h2 { font-size: 1.05rem; font-weight: 900; color: var(--text); letter-spacing: 1px; }
+    .crop-close {
+      width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--border);
+      background: #fdf9f5; cursor: pointer; font-size: 1rem; color: var(--muted);
+      display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+    }
+    .crop-close:hover { background: #ffe0e0; border-color: #ffb8b8; color: #c05050; }
+
+    /* image + drag area */
+    .crop-stage {
+      position: relative; overflow: hidden;
+      border-radius: 12px; background: #1a1a2e;
+      user-select: none; touch-action: none;
+      cursor: crosshair;
+    }
+
+    .crop-stage img {
+      display: block; pointer-events: none;
+      /* set via JS: width/height */
+    }
+
+    /* crop selection box */
+    .crop-sel {
+      position: absolute;
+      box-shadow: 0 0 0 9999px rgba(0,0,0,0.52);
+      border: 2px solid rgba(255,255,255,0.9);
+      cursor: move;
+    }
+    /* rule-of-thirds grid */
+    .crop-sel::before {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        repeating-linear-gradient(0deg, transparent, transparent calc(100%/3 - 1px), rgba(255,255,255,0.25) calc(100%/3 - 1px), rgba(255,255,255,0.25) calc(100%/3))  ,
+        repeating-linear-gradient(90deg, transparent, transparent calc(100%/3 - 1px), rgba(255,255,255,0.25) calc(100%/3 - 1px), rgba(255,255,255,0.25) calc(100%/3));
+      pointer-events: none;
+    }
+    /* corner handles */
+    .crop-handle {
+      position: absolute; width: 16px; height: 16px;
+      background: #fff; border: 2.5px solid var(--orange2); border-radius: 4px;
+    }
+    .crop-handle[data-h="tl"] { top: -9px;  left: -9px;  cursor: nw-resize; }
+    .crop-handle[data-h="tr"] { top: -9px;  right: -9px; cursor: ne-resize; }
+    .crop-handle[data-h="bl"] { bottom: -9px; left: -9px;  cursor: sw-resize; }
+    .crop-handle[data-h="br"] { bottom: -9px; right: -9px; cursor: se-resize; }
+
+    /* ratio badge */
+    .crop-ratio-badge {
+      position: absolute; top: 10px; left: 10px;
+      background: rgba(0,0,0,0.55); color: #fff;
+      border-radius: 6px; padding: 3px 8px; font-size: 0.72rem; font-weight: 700;
+      pointer-events: none; letter-spacing: 0.5px;
+    }
+
+    /* preview strip */
+    .crop-preview-row {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .crop-preview-label { font-size: 0.78rem; color: var(--muted); font-weight: 700; flex-shrink: 0; }
+    .crop-preview-card {
+      flex: 1; border-radius: 10px; overflow: hidden;
+      border: 1.5px solid var(--border); background: #fdf9f5;
+      display: flex; flex-direction: column;
+    }
+    .crop-preview-img {
+      aspect-ratio: 300 / 64;   /* 與實際卡片圖片區等比例 */
+      background-color: #ddd;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+    .crop-preview-bar {
+      height: 16px; background: #fff; display: flex; align-items: center;
+      padding: 0 6px; font-size: 0.6rem; color: var(--muted); font-weight: 700;
+      border-top: 1px solid rgba(240,220,200,0.5);
+    }
+
+    /* footer buttons */
+    .crop-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .crop-hint { font-size: 0.78rem; color: var(--muted); }
+    .crop-btns { display: flex; gap: 8px; }
+    .btn-cancel {
+      padding: 9px 20px; border-radius: 10px; border: 1.5px solid var(--border);
+      background: #fdf9f5; color: var(--muted); font-family: inherit;
+      font-size: 0.88rem; font-weight: 700; cursor: pointer; transition: all 0.15s;
+    }
+    .btn-cancel:hover { background: var(--peach); color: var(--text); }
+    .btn-confirm {
+      padding: 9px 22px; border-radius: 10px; border: none;
+      background: linear-gradient(135deg,#f97316,#f5a623); color: #fff;
+      font-family: inherit; font-size: 0.88rem; font-weight: 700; cursor: pointer;
+      box-shadow: 0 3px 0 #c8600a; transition: all 0.15s;
+    }
+    .btn-confirm:hover  { transform: translateY(-1px); }
+    .btn-confirm:active { transform: translateY(1px); }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <span class="top-deco">🍱</span>
+    <h1>呷啥咪轉盤</h1>
+    <span class="top-deco">✨</span>
+  </div>
+  <p class="subtitle">選好場合，轉一下決定今天吃什麼！</p>
+
+  <div class="cat-row" id="categoryTabs"></div>
+
+  <div class="main">
+    <div class="slot-card">
+      <div class="slot-wrapper">
+        <div class="slot-window">
+          <div class="slot-strip" id="slotStrip"></div>
+        </div>
+        <div class="slot-fade slot-fade-top"></div>
+        <div class="slot-fade slot-fade-bottom"></div>
+        <div class="slot-selector"></div>
+      </div>
+      <div class="result-box" id="result">選好場合，再按轉！🎯</div>
+      <button class="spin-btn" id="spinBtn" onclick="spin()">轉！</button>
+    </div>
+
+    <div class="options-card" id="optionsCard">
+      <div class="options-title">
+        <div class="icon-circle" id="panelIconCircle"></div>
+        <span class="title-text" id="panelTitle">餐點選項</span>
+        <button class="edit-toggle-btn" id="editToggleBtn" onclick="toggleEdit()" title="編輯選項">✏️</button>
+      </div>
+      <div class="option-list" id="optionList"></div>
+      <button class="add-btn" onclick="addOption()">＋ 新增選項</button>
+      <button class="save-btn" onclick="saveEdit()">儲存完成 ✓</button>
+    </div>
+  </div>
+
+  <!-- ── Crop modal ── -->
+  <div class="crop-modal hidden" id="cropModal">
+    <div class="crop-box">
+      <div class="crop-header">
+        <h2>✂️ 裁切圖片</h2>
+        <button class="crop-close" onclick="cancelCrop()">✕</button>
+      </div>
+
+      <div class="crop-stage" id="cropStage">
+        <img id="cropImg" draggable="false" />
+        <div class="crop-ratio-badge" id="cropRatioBadge">卡片比例</div>
+        <div class="crop-sel" id="cropSel">
+          <div class="crop-handle" data-h="tl"></div>
+          <div class="crop-handle" data-h="tr"></div>
+          <div class="crop-handle" data-h="bl"></div>
+          <div class="crop-handle" data-h="br"></div>
+        </div>
+      </div>
+
+      <div class="crop-preview-row">
+        <span class="crop-preview-label">預覽</span>
+        <div class="crop-preview-card">
+          <div class="crop-preview-img" id="cropPreviewImg"></div>
+          <div class="crop-preview-bar" id="cropPreviewName">餐點名稱</div>
+        </div>
+      </div>
+
+      <div class="crop-footer">
+        <span class="crop-hint">拖曳移動・四角縮放・比例固定</span>
+        <div class="crop-btns">
+          <button class="btn-cancel" onclick="cancelCrop()">取消</button>
+          <button class="btn-confirm" onclick="confirmCrop()">確認裁切</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Menu modal ── -->
+  <div class="menu-modal hidden" id="menuModal">
+    <div class="menu-box">
+      <div class="menu-header">
+        <div class="menu-header-icon" id="menuHeaderIcon"></div>
+        <h2 id="menuRestName"></h2>
+        <button class="menu-close-x" onclick="closeMenuModal()">✕</button>
+      </div>
+      <div class="menu-divider"></div>
+      <div class="menu-tabs" id="menuTabs">
+        <button class="menu-tab-btn active" data-mode="manual" onclick="setMenuMode('manual')">✏️ 手動輸入</button>
+        <button class="menu-tab-btn" data-mode="photos" onclick="setMenuMode('photos')">📷 菜單照片</button>
+      </div>
+      <div class="menu-body" id="menuBody"></div>
+      <button class="menu-add-btn" id="menuAddBtn" onclick="addMenuItem()">＋ 新增餐點</button>
+      <button class="menu-footer-btn" onclick="closeMenuModal()">完成</button>
+    </div>
+  </div>
+
+  <input type="file" id="imgPicker" accept="image/*" style="display:none" />
+  <input type="file" id="menuImgPicker" accept="image/*" multiple style="display:none" />
+
+  <!-- ── Image lightbox ── -->
+  <div class="img-lightbox hidden" id="imgLightbox">
+    <img id="lightboxImg" />
+  </div>
+
+<script>
+  /* ── Slot constants ── */
+  const CARD_H    = 100;
+  const CARD_GAP  = 12;
+  const STRIDE    = CARD_H + CARD_GAP;   // 112
+  const CENTER_TOP = STRIDE;              // top of center card in window
+  const REPEATS   = 40;
+
+  /* ── Crop constant: card image area aspect ratio ── */
+  const CROP_W = 300, CROP_H = 64;         // card image area dimensions
+  const CROP_RATIO = CROP_W / CROP_H;      // ≈ 4.6875
+
+  /* ── Visual assets ── */
+  const GRADIENTS = [
+    'linear-gradient(135deg,#ffb347,#ff9a7b)', 'linear-gradient(135deg,#a8d8b0,#5bba8a)',
+    'linear-gradient(135deg,#87c8e8,#5ba8d8)', 'linear-gradient(135deg,#c5aee8,#a080d8)',
+    'linear-gradient(135deg,#f7c6d4,#e890ac)', 'linear-gradient(135deg,#ffd580,#f5a623)',
+    'linear-gradient(135deg,#90e0c8,#5ac8aa)', 'linear-gradient(135deg,#ffb6c1,#f090a8)',
+    'linear-gradient(135deg,#b5d9a5,#7aba6a)', 'linear-gradient(135deg,#dda0dd,#b870c8)',
+    'linear-gradient(135deg,#f4a460,#d48040)', 'linear-gradient(135deg,#99d6e8,#5ab8d0)',
+  ];
+  const EMOJI_MAP = {
+    '便當':'🍱','滷肉飯':'🍚','水餃':'🥟','麵食':'🍜','自助餐':'🍽','排骨飯':'🍖',
+    '雞腿飯':'🍗','炒飯':'🍳','炸雞':'🍗','鹽酥雞':'🧆','火鍋':'🍲','燒烤':'🔥',
+    '牛肉麵':'🍜','豬血糕':'🟫','臭豆腐':'🫘','餛飩湯':'🥣','壽司':'🍣','牛排':'🥩',
+    '義大利麵':'🍝','拉麵':'🍜','燒肉':'🥓','泰式料理':'🌶','韓式烤肉':'🥩','海鮮':'🦐',
+  };
+  const getEmoji = n => EMOJI_MAP[n] || '🍴';
+
+  /* ── Data ── */
+  const CATEGORIES = [
+    {
+      id:'lunch', icon:'🏢', name:'公司午餐',
+      bgColor:'linear-gradient(135deg,#e8f4fd,#cfe8f8)', dotColor:'#78bce8',
+      options:[
+        {name:'便當',img:null,menu:[]},{name:'滷肉飯',img:null,menu:[]},{name:'水餃',img:null,menu:[]},{name:'麵食',img:null,menu:[]},
+        {name:'自助餐',img:null,menu:[]},{name:'排骨飯',img:null,menu:[]},{name:'雞腿飯',img:null,menu:[]},{name:'炒飯',img:null,menu:[]},
+      ],
+    },
+    {
+      id:'dinner', icon:'🏠', name:'家附近晚餐',
+      bgColor:'linear-gradient(135deg,#e8f8ec,#cff0d8)', dotColor:'#7ecb8f',
+      options:[
+        {name:'炸雞',img:null,menu:[]},{name:'鹽酥雞',img:null,menu:[]},{name:'火鍋',img:null,menu:[]},{name:'燒烤',img:null,menu:[]},
+        {name:'牛肉麵',img:null,menu:[]},{name:'豬血糕',img:null,menu:[]},{name:'臭豆腐',img:null,menu:[]},{name:'餛飩湯',img:null,menu:[]},
+      ],
+    },
+    {
+      id:'holiday', icon:'🎉', name:'假日餐廳',
+      bgColor:'linear-gradient(135deg,#fff4e6,#ffe0c0)', dotColor:'#f97316',
+      options:[
+        {name:'壽司',img:null,menu:[]},{name:'牛排',img:null,menu:[]},{name:'義大利麵',img:null,menu:[]},{name:'拉麵',img:null,menu:[]},
+        {name:'燒肉',img:null,menu:[]},{name:'泰式料理',img:null,menu:[]},{name:'韓式烤肉',img:null,menu:[]},{name:'海鮮',img:null,menu:[]},
+      ],
+    },
+  ];
+
+  /* ── Category presets ── */
+  const PRESET_ICONS   = ['🏢','🏠','🎉','🍽','🌮','🍔','🥘','🍕','🥗','🫕','☕','🍣','🍜','🎂'];
+  const PRESET_COLORS  = [
+    {bg:'linear-gradient(135deg,#e8f4fd,#cfe8f8)', dot:'#78bce8'},
+    {bg:'linear-gradient(135deg,#e8f8ec,#cff0d8)', dot:'#7ecb8f'},
+    {bg:'linear-gradient(135deg,#fff4e6,#ffe0c0)', dot:'#f97316'},
+    {bg:'linear-gradient(135deg,#f4e8f8,#e0cff0)', dot:'#b070d8'},
+    {bg:'linear-gradient(135deg,#fdf4e8,#f8e4c0)', dot:'#d4922a'},
+    {bg:'linear-gradient(135deg,#e8f0f8,#cfd8f0)', dot:'#6888c8'},
+  ];
+
+  /* ── App state ── */
+  let activeCategory = 0, isEditing = false, isSpinning = false;
+  let currentC = 0, currentTY = 0, needsReset = false, lastWinIndex = 0;
+  let pendingPhoto = null;   // { catIdx, optIdx }
+
+  /* ════════════════════════════════════════
+     IMAGE PICKER → triggers crop modal
+  ════════════════════════════════════════ */
+  const imgPickerEl = document.getElementById('imgPicker');
+  imgPickerEl.addEventListener('change', () => {
+    if (!imgPickerEl.files[0] || !pendingPhoto) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      openCropModal(e.target.result, pendingPhoto.catIdx, pendingPhoto.optIdx);
+      pendingPhoto = null;
+    };
+    reader.readAsDataURL(imgPickerEl.files[0]);
+    imgPickerEl.value = '';
+  });
+
+  function pickImage(catIdx, optIdx) {
+    if (!isEditing) return;
+    pendingPhoto = { catIdx, optIdx };
+    imgPickerEl.click();
+  }
+
+  function clearImage(catIdx, optIdx) {
+    CATEGORIES[catIdx].options[optIdx].img = null;
+    renderOptions();
+  }
+
+  /* ════════════════════════════════════════
+     MENU MODAL MODE
+  ════════════════════════════════════════ */
+  let menuModalMode = 'manual';   // 'manual' | 'photos'
+
+  function setMenuMode(mode) {
+    menuModalMode = mode;
+    document.querySelectorAll('.menu-tab-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.mode === mode);
+    });
+    // 新增餐點按鈕只在可編輯 + 手動模式下顯示
+    document.getElementById('menuAddBtn').style.display =
+      (menuModalEditable && mode === 'manual') ? '' : 'none';
+    renderMenuBody();
+  }
+
+  /* ── Menu photo picker ── */
+  const menuImgPickerEl = document.getElementById('menuImgPicker');
+
+  menuImgPickerEl.addEventListener('change', () => {
+    if (!menuImgPickerEl.files.length) return;
+    const opt = CATEGORIES[activeCategory].options[menuOptIdx];
+    if (!opt.menuPhotos) opt.menuPhotos = [];
+    const files = Array.from(menuImgPickerEl.files);
+    let loaded = 0;
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        opt.menuPhotos.push(e.target.result);
+        loaded++;
+        if (loaded === files.length) renderMenuBody();
+      };
+      reader.readAsDataURL(file);
+    });
+    menuImgPickerEl.value = '';
+  });
+
+  /* ── Lightbox ── */
+  function openLightbox(src) {
+    document.getElementById('lightboxImg').src = src;
+    document.getElementById('imgLightbox').classList.remove('hidden');
+  }
+  document.getElementById('imgLightbox').addEventListener('click', () => {
+    document.getElementById('imgLightbox').classList.add('hidden');
+  });
+
+  /* ════════════════════════════════════════
+     CROP MODAL
+  ════════════════════════════════════════ */
+  let cropCtx = null;   // { catIdx, optIdx, optName }
+  const cs = {          // crop state
+    imgEl: null,
+    stageW: 0, stageH: 0,        // stage display size
+    imgDispW: 0, imgDispH: 0,    // image rendered size within stage
+    imgOffX: 0, imgOffY: 0,      // image offset within stage (letterbox)
+    cx: 0, cy: 0, cw: 0, ch: 0, // selection in stage coords
+    mode: null,                  // 'move'|'tl'|'tr'|'bl'|'br'
+    startMX: 0, startMY: 0,
+    startCx: 0, startCy: 0, startCw: 0, startCh: 0,
+  };
+
+  function openCropModal(dataUrl, catIdx, optIdx) {
+    cropCtx = { catIdx, optIdx, optName: CATEGORIES[catIdx].options[optIdx].name };
+
+    const modal  = document.getElementById('cropModal');
+    const imgEl  = document.getElementById('cropImg');
+    const stage  = document.getElementById('cropStage');
+
+    modal.classList.remove('hidden');
+
+    const tempImg = new Image();
+    tempImg.onload = () => {
+      const natW = tempImg.naturalWidth, natH = tempImg.naturalHeight;
+
+      // Calculate stage size (max 540 wide, 340 tall)
+      const maxW = Math.min(540, window.innerWidth - 80);
+      const maxH = 340;
+      let sW = natW, sH = natH;
+      if (sW > maxW) { sH = sH * maxW / sW; sW = maxW; }
+      if (sH > maxH) { sW = sW * maxH / sH; sH = maxH; }
+      sW = Math.round(sW); sH = Math.round(sH);
+
+      // Image letterbox within stage
+      const imgAspect  = natW / natH;
+      const stageAspect = sW / sH;
+      let iW, iH, iX = 0, iY = 0;
+      if (imgAspect > stageAspect) {
+        iW = sW; iH = Math.round(sW / imgAspect);
+        iY = Math.round((sH - iH) / 2);
+      } else {
+        iH = sH; iW = Math.round(sH * imgAspect);
+        iX = Math.round((sW - iW) / 2);
+      }
+
+      stage.style.width  = sW + 'px';
+      stage.style.height = sH + 'px';
+      imgEl.style.width  = iW + 'px';
+      imgEl.style.height = iH + 'px';
+      imgEl.style.marginLeft = iX + 'px';
+      imgEl.style.marginTop  = iY + 'px';
+      imgEl.src = dataUrl;
+
+      Object.assign(cs, {
+        imgEl: tempImg,
+        stageW: sW, stageH: sH,
+        imgDispW: iW, imgDispH: iH,
+        imgOffX: iX, imgOffY: iY,
+      });
+
+      // Initial crop: full image width, clamped by ratio
+      let initCW = iW, initCH = initCW / CROP_RATIO;
+      if (initCH > iH) { initCH = iH; initCW = initCH * CROP_RATIO; }
+      cs.cx = iX + (iW - initCW) / 2;
+      cs.cy = iY + (iH - initCH) / 2;
+      cs.cw = initCW; cs.ch = initCH;
+
+      applyCropSel();
+      updatePreview();
+
+      // Update preview name
+      document.getElementById('cropPreviewName').textContent = cropCtx.optName;
+    };
+    tempImg.src = dataUrl;
+  }
+
+  function applyCropSel() {
+    const sel = document.getElementById('cropSel');
+    sel.style.left   = cs.cx + 'px';
+    sel.style.top    = cs.cy + 'px';
+    sel.style.width  = cs.cw + 'px';
+    sel.style.height = cs.ch + 'px';
+  }
+
+  function updatePreview() {
+    // Render cropped area onto offscreen canvas for preview
+    const { imgEl, imgDispW, imgDispH, imgOffX, imgOffY, cx, cy, cw, ch } = cs;
+    const scaleX = imgEl.naturalWidth  / imgDispW;
+    const scaleY = imgEl.naturalHeight / imgDispH;
+    const srcX = (cx - imgOffX) * scaleX;
+    const srcY = (cy - imgOffY) * scaleY;
+    const srcW = cw * scaleX;
+    const srcH = ch * scaleY;
+
+    const cvs = document.createElement('canvas');
+    cvs.width = 300; cvs.height = 64;
+    cvs.getContext('2d').drawImage(imgEl, srcX, srcY, srcW, srcH, 0, 0, 300, 64);
+    document.getElementById('cropPreviewImg').style.backgroundImage = `url(${cvs.toDataURL()})`;
+  }
+
+  /* ── Crop interactions ── */
+  function getStageXY(e) {
+    const r = document.getElementById('cropStage').getBoundingClientRect();
+    const src = e.touches ? e.touches[0] : e;
+    return { x: src.clientX - r.left, y: src.clientY - r.top };
+  }
+
+  function onCropDown(e) {
+    e.preventDefault();
+    const { x, y } = getStageXY(e);
+    const { cx, cy, cw, ch } = cs;
+    const HIT = 18;
+
+    const corners = { tl:[cx,cy], tr:[cx+cw,cy], bl:[cx,cy+ch], br:[cx+cw,cy+ch] };
+    for (const [h,[hx,hy]] of Object.entries(corners)) {
+      if (Math.abs(x-hx) < HIT && Math.abs(y-hy) < HIT) {
+        cs.mode = h;
+        cs.startMX = x; cs.startMY = y;
+        cs.startCx = cx; cs.startCy = cy; cs.startCw = cw; cs.startCh = ch;
+        return;
+      }
+    }
+    if (x >= cx && x <= cx+cw && y >= cy && y <= cy+ch) {
+      cs.mode = 'move';
+      cs.startMX = x; cs.startMY = y;
+      cs.startCx = cx; cs.startCy = cy;
+    }
+  }
+
+  function clampCrop(nx, ny, nw, nh) {
+    // Clamp so selection stays within image letterbox area
+    const { imgOffX: ox, imgOffY: oy, imgDispW: iW, imgDispH: iH } = cs;
+    const minW = 50;
+    nw = Math.max(minW, nw);
+    nh = nw / CROP_RATIO;
+    // Further clamp to image bounds
+    if (nx < ox)       { nw -= (ox - nx); nh = nw / CROP_RATIO; nx = ox; }
+    if (ny < oy)       { nh = Math.min(nh, iH - (ny - oy)); nw = nh * CROP_RATIO; ny = oy; }
+    if (nx + nw > ox + iW) { nw = ox + iW - nx; nh = nw / CROP_RATIO; }
+    if (ny + nh > oy + iH) { nh = oy + iH - ny; nw = nh * CROP_RATIO; }
+    return { nx, ny, nw, nh };
+  }
+
+  function onCropMove(e) {
+    if (!cs.mode) return;
+    e.preventDefault();
+    const { x, y } = getStageXY(e);
+    const dx = x - cs.startMX, dy = y - cs.startMY;
+    const { startCx: scx, startCy: scy, startCw: scw, startCh: sch } = cs;
+    const { imgOffX: ox, imgOffY: oy, imgDispW: iW, imgDispH: iH } = cs;
+
+    if (cs.mode === 'move') {
+      cs.cx = Math.max(ox, Math.min(ox + iW - scw, scx + dx));
+      cs.cy = Math.max(oy, Math.min(oy + iH - sch, scy + dy));
+    } else {
+      let nx = scx, ny = scy, nw = scw, nh = sch;
+      if (cs.mode === 'br') { nw = scw + dx; nx = scx; ny = scy; }
+      if (cs.mode === 'bl') { nw = scw - dx; nx = scx + scw - nw; ny = scy; }
+      if (cs.mode === 'tr') { nw = scw + dx; nx = scx; ny = scy + sch - (nw / CROP_RATIO); }
+      if (cs.mode === 'tl') { nw = scw - dx; nx = scx + scw - nw; ny = scy + sch - (nw / CROP_RATIO); }
+
+      nh = nw / CROP_RATIO;
+      const c = clampCrop(nx, ny, nw, nh);
+      cs.cx = c.nx; cs.cy = c.ny; cs.cw = c.nw; cs.ch = c.nh;
+    }
+
+    applyCropSel();
+    updatePreview();
+  }
+
+  function onCropUp() { cs.mode = null; }
+
+  // Bind events (once)
+  (function initCropEvents() {
+    const stage = document.getElementById('cropStage');
+    stage.addEventListener('mousedown',  onCropDown);
+    stage.addEventListener('touchstart', onCropDown, { passive: false });
+    document.addEventListener('mousemove',  onCropMove);
+    document.addEventListener('touchmove',  onCropMove, { passive: false });
+    document.addEventListener('mouseup',    onCropUp);
+    document.addEventListener('touchend',   onCropUp);
+  })();
+
+  function cancelCrop() {
+    document.getElementById('cropModal').classList.add('hidden');
+    cropCtx = null;
+  }
+
+  function confirmCrop() {
+    const { imgEl, imgDispW, imgDispH, imgOffX, imgOffY, cx, cy, cw, ch } = cs;
+    const scaleX = imgEl.naturalWidth  / imgDispW;
+    const scaleY = imgEl.naturalHeight / imgDispH;
+
+    const cvs = document.createElement('canvas');
+    cvs.width = 600; cvs.height = Math.round(600 / CROP_RATIO);
+    cvs.getContext('2d').drawImage(
+      imgEl,
+      (cx - imgOffX) * scaleX, (cy - imgOffY) * scaleY,
+      cw * scaleX, ch * scaleY,
+      0, 0, cvs.width, cvs.height
+    );
+
+    const { catIdx, optIdx } = cropCtx;
+    CATEGORIES[catIdx].options[optIdx].img = cvs.toDataURL('image/jpeg', 0.92);
+    document.getElementById('cropModal').classList.add('hidden');
+    cropCtx = null;
+    renderOptions();
+  }
+
+  /* ════════════════════════════════════════
+     MENU MODAL
+  ════════════════════════════════════════ */
+  let menuOptIdx = null;
+  let menuModalEditable = false;
+
+  function openMenuModal(optIdx, editable = false) {
+    menuOptIdx = optIdx;
+    menuModalEditable = editable;
+    const cat = CATEGORIES[activeCategory];
+    const opt = cat.options[optIdx];
+    const icon = document.getElementById('menuHeaderIcon');
+    icon.textContent = cat.icon;
+    icon.style.background = cat.bgColor;
+    document.getElementById('menuRestName').textContent = opt.name;
+
+    const tabsEl  = document.getElementById('menuTabs');
+    const addBtn  = document.getElementById('menuAddBtn');
+
+    if (editable) {
+      // 編輯模式：顯示分頁，預設手動輸入
+      menuModalMode = 'manual';
+      tabsEl.style.display = '';
+      document.querySelectorAll('.menu-tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === 'manual');
+      });
+      addBtn.style.display = '';
+    } else {
+      // 唯讀模式：隱藏分頁，自動判斷顯示照片或清單
+      tabsEl.style.display = 'none';
+      addBtn.style.display = 'none';
+      // 有照片就顯示照片，否則顯示手動清單
+      menuModalMode = (opt.menuPhotos && opt.menuPhotos.length > 0) ? 'photos' : 'manual';
+    }
+
+    renderMenuBody();
+    document.getElementById('menuModal').classList.remove('hidden');
+  }
+
+  function closeMenuModal() {
+    document.getElementById('menuModal').classList.add('hidden');
+    menuOptIdx = null;
+  }
+
+  function renderMenuBody() {
+    const opt = CATEGORIES[activeCategory].options[menuOptIdx];
+    const body = document.getElementById('menuBody');
+    body.innerHTML = '';
+
+    if (menuModalMode === 'photos') {
+      /* ── Photo mode ── */
+      const photos = opt.menuPhotos || [];
+      if (photos.length === 0 && !menuModalEditable) {
+        const empty = document.createElement('div');
+        empty.className = 'menu-empty';
+        empty.textContent = '尚未上傳菜單照片 📷';
+        body.appendChild(empty);
+        return;
+      }
+      const grid = document.createElement('div');
+      grid.className = 'menu-photo-grid';
+
+      photos.forEach((src, j) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'menu-photo-wrap';
+
+        const img = document.createElement('img');
+        img.src = src;
+        img.onclick = () => openLightbox(src);
+
+        wrap.appendChild(img);
+
+        if (menuModalEditable) {
+          const delBtn = document.createElement('button');
+          delBtn.className = 'menu-photo-del';
+          delBtn.textContent = '×';
+          delBtn.onclick = e => {
+            e.stopPropagation();
+            opt.menuPhotos.splice(j, 1);
+            renderMenuBody();
+          };
+          wrap.appendChild(delBtn);
+        }
+
+        grid.appendChild(wrap);
+      });
+
+      if (menuModalEditable) {
+        const upBtn = document.createElement('div');
+        upBtn.className = 'menu-photo-upload-btn';
+        upBtn.innerHTML = '📷<span>上傳照片</span>';
+        upBtn.onclick = () => menuImgPickerEl.click();
+        grid.appendChild(upBtn);
+      }
+
+      if (photos.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'menu-empty';
+        empty.textContent = '尚未上傳菜單照片';
+        body.appendChild(empty);
+      }
+      body.appendChild(grid);
+      return;
+    }
+
+    /* ── Manual mode ── */
+    if (opt.menu.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'menu-empty';
+      empty.textContent = menuModalEditable ? '尚無菜單，點下方新增餐點 🍽' : '尚無菜單內容 🍽';
+      body.appendChild(empty);
+      return;
+    }
+
+    opt.menu.forEach((item, i) => {
+      if (!menuModalEditable) {
+        /* 唯讀列 */
+        const row = document.createElement('div');
+        row.className = 'menu-view-row';
+        const nm = document.createElement('span'); nm.className = 'mv-name'; nm.textContent = item.name || '（未命名）';
+        const pr = document.createElement('span'); pr.className = 'mv-price';
+        if (item.price) pr.textContent = item.price;
+        row.append(nm, pr);
+        body.appendChild(row);
+        return;
+      }
+
+      /* 可編輯列 */
+      const row = document.createElement('div');
+      row.className = 'menu-item-row';
+
+      const inpName = document.createElement('input');
+      inpName.className = 'inp-name';
+      inpName.type = 'text';
+      inpName.placeholder = '餐點名稱';
+      inpName.value = item.name;
+      inpName.addEventListener('input', e => { item.name = e.target.value; });
+
+      const inpPrice = document.createElement('input');
+      inpPrice.className = 'inp-price';
+      inpPrice.type = 'text';
+      inpPrice.placeholder = '價格';
+      inpPrice.value = item.price;
+      inpPrice.addEventListener('input', e => { item.price = e.target.value; });
+
+      const del = document.createElement('button');
+      del.className = 'menu-item-del';
+      del.textContent = '×';
+      del.onclick = () => { opt.menu.splice(i, 1); renderMenuBody(); };
+
+      row.append(inpName, inpPrice, del);
+      body.appendChild(row);
+    });
+  }
+
+  function addMenuItem() {
+    CATEGORIES[activeCategory].options[menuOptIdx].menu.push({ name: '', price: '' });
+    renderMenuBody();
+    // focus the new name input
+    const rows = document.querySelectorAll('.menu-item-row');
+    const lastRow = rows[rows.length - 1];
+    if (lastRow) lastRow.querySelector('.inp-name').focus();
+  }
+
+  /* ════════════════════════════════════════
+     CATEGORY TABS
+  ════════════════════════════════════════ */
+  function renderTabs() {
+    const el = document.getElementById('categoryTabs');
+    el.innerHTML = '';
+
+    CATEGORIES.forEach((cat, i) => {
+      const pill = document.createElement('div');
+      pill.className = 'cat-pill' + (i === activeCategory ? ' active' : '');
+      pill.dataset.id = cat.id;
+
+      if (i === activeCategory) {
+        // icon: click to cycle through presets
+        const iconBtn = document.createElement('button');
+        iconBtn.className = 'pill-icon-btn';
+        iconBtn.textContent = cat.icon;
+        iconBtn.title = '點擊換 icon';
+        iconBtn.onclick = e => {
+          e.stopPropagation();
+          const idx = PRESET_ICONS.indexOf(cat.icon);
+          cat.icon = PRESET_ICONS[(idx + 1) % PRESET_ICONS.length];
+          renderTabs(); updatePanel(); buildStrip();
+        };
+
+        // name: inline editable input
+        const nameInp = document.createElement('input');
+        nameInp.className = 'pill-name-inp';
+        nameInp.type = 'text';
+        nameInp.value = cat.name;
+        nameInp.placeholder = '場合名稱';
+        nameInp.size = Math.max(4, cat.name.length);   // size 單位是字元數，中文也能正確撐開
+        nameInp.onclick = e => e.stopPropagation();
+        nameInp.addEventListener('input', e => {
+          cat.name = e.target.value;
+          nameInp.size = Math.max(4, e.target.value.length);
+          updatePanel();
+        });
+
+        // delete button（active pill 不顯示數量徽章，已在選項面板可見）
+        const delBtn = document.createElement('button');
+        delBtn.className = 'pill-del-btn';
+        delBtn.textContent = '×';
+        delBtn.title = '刪除此場合';
+        delBtn.disabled = CATEGORIES.length <= 1;
+        delBtn.onclick = e => { e.stopPropagation(); deleteCategory(i); };
+
+        pill.append(iconBtn, nameInp, delBtn);
+      } else {
+        pill.innerHTML = `<span>${cat.icon}</span>${cat.name}<span class="pill-count">${cat.options.length}</span>`;
+        pill.onclick = () => selectCategory(i);
+      }
+
+      el.appendChild(pill);
+    });
+
+    // ＋ 新增場合
+    const addBtn = document.createElement('button');
+    addBtn.className = 'cat-pill-add';
+    addBtn.textContent = '＋ 新增場合';
+    addBtn.onclick = addCategory;
+    el.appendChild(addBtn);
+  }
+
+  function addCategory() {
+    const idx = CATEGORIES.length;
+    const color = PRESET_COLORS[idx % PRESET_COLORS.length];
+    CATEGORIES.push({
+      id: 'cat_' + Date.now(),
+      icon: PRESET_ICONS[idx % PRESET_ICONS.length],
+      name: '新場合',
+      bgColor: color.bg,
+      dotColor: color.dot,
+      options: [
+        { name: '選項一', img: null, menu: [] },
+        { name: '選項二', img: null, menu: [] },
+      ],
+    });
+    selectCategory(CATEGORIES.length - 1);
+    // 自動聚焦名稱輸入框讓用戶立即改名
+    setTimeout(() => {
+      const inp = document.querySelector('.pill-name-inp');
+      if (inp) { inp.focus(); inp.select(); }
+    }, 30);
+  }
+
+  function deleteCategory(i) {
+    if (CATEGORIES.length <= 1) return;
+    CATEGORIES.splice(i, 1);
+    activeCategory = Math.min(activeCategory, CATEGORIES.length - 1);
+    isEditing = false; needsReset = false;
+    document.getElementById('optionsCard').classList.remove('editing');
+    document.getElementById('editToggleBtn').classList.remove('active');
+    renderTabs(); renderOptions(); updatePanel(); initSlot();
+    document.getElementById('result').textContent = '選好場合，再按轉！🎯';
+  }
+
+  function selectCategory(i) {
+    if (isSpinning) return;
+    activeCategory = i; isEditing = false; needsReset = false;
+    document.getElementById('optionsCard').classList.remove('editing');
+    document.getElementById('editToggleBtn').classList.remove('active');
+    renderTabs(); renderOptions(); updatePanel(); initSlot();
+    document.getElementById('result').textContent = '選好場合，再按轉！🎯';
+  }
+
+  function updatePanel() {
+    const cat = CATEGORIES[activeCategory];
+    const c = document.getElementById('panelIconCircle');
+    c.style.background = cat.bgColor; c.textContent = cat.icon;
+    document.getElementById('panelTitle').textContent = cat.name + ' 選項';
+  }
+
+  /* ════════════════════════════════════════
+     OPTIONS PANEL
+  ════════════════════════════════════════ */
+  function toggleEdit() {
+    isEditing = true;
+    document.getElementById('optionsCard').classList.add('editing');
+    document.getElementById('editToggleBtn').classList.add('active');
+    renderOptions();
+  }
+
+  function saveEdit() {
+    const cat = CATEGORIES[activeCategory];
+    document.querySelectorAll('.option-item input[type="text"]').forEach((inp, i) => {
+      if (i < cat.options.length) cat.options[i].name = inp.value;
+    });
+    isEditing = false; needsReset = false;
+    document.getElementById('optionsCard').classList.remove('editing');
+    document.getElementById('editToggleBtn').classList.remove('active');
+    renderTabs(); renderOptions(); initSlot();
+  }
+
+  function renderOptions() {
+    const cat = CATEGORIES[activeCategory];
+    const list = document.getElementById('optionList');
+    list.innerHTML = '';
+
+    cat.options.forEach((opt, i) => {
+      const item = document.createElement('div');
+      item.className = 'option-item' + (opt.img ? ' has-img' : '');
+
+      /* swatch / image thumbnail */
+      const sw = document.createElement('div');
+      sw.className = 'opt-swatch' + (opt.img ? ' has-img' : '');
+      if (opt.img) { sw.style.backgroundImage = `url(${opt.img})`; }
+      else         { sw.style.background = GRADIENTS[i % GRADIENTS.length]; }
+      sw.onclick = () => pickImage(activeCategory, i);
+      const hint = document.createElement('span');
+      hint.className = 'cam-hint'; hint.textContent = '📷';
+      sw.appendChild(hint);
+
+      /* name input */
+      const inp = document.createElement('input');
+      inp.type = 'text'; inp.value = opt.name;
+      inp.addEventListener('input', e => { opt.name = e.target.value; });
+
+      /* clear image */
+      const clr = document.createElement('button');
+      clr.className = 'clr-btn'; clr.title = '移除圖片'; clr.textContent = '✕';
+      clr.onclick = () => clearImage(activeCategory, i);
+
+      /* menu edit button */
+      const menuBtn = document.createElement('button');
+      menuBtn.className = 'menu-opt-btn';
+      menuBtn.textContent = '📋';
+      menuBtn.title = '編輯菜單';
+      menuBtn.onclick = () => openMenuModal(i, true);
+
+      /* delete option */
+      const del = document.createElement('button');
+      del.className = 'del-btn'; del.textContent = '×';
+      del.onclick = () => {
+        if (cat.options.length > 2) { cat.options.splice(i, 1); renderTabs(); renderOptions(); }
+      };
+
+      item.append(sw, inp, menuBtn, clr, del);
+      list.appendChild(item);
+    });
+  }
+
+  function addOption() {
+    CATEGORIES[activeCategory].options.push({ name: '新選項', img: null });
+    renderTabs(); renderOptions();
+    const inputs = document.querySelectorAll('.option-item input[type="text"]');
+    const last = inputs[inputs.length - 1];
+    last.focus(); last.select();
+  }
+
+  /* ════════════════════════════════════════
+     SLOT MACHINE
+  ════════════════════════════════════════ */
+  const stripEl = () => document.getElementById('slotStrip');
+
+  function initSlot() {
+    const n = CATEGORIES[activeCategory].options.length;
+    currentC  = 35 * n;
+    currentTY = CENTER_TOP - currentC * STRIDE;
+    buildStrip();
+    stripEl().style.transform = `translateY(${currentTY}px)`;
+  }
+
+  function buildStrip() {
+    const cat = CATEGORIES[activeCategory];
+    const el  = stripEl();
+    el.innerHTML = '';
+    for (let r = 0; r < REPEATS; r++) {
+      cat.options.forEach((opt, i) => {
+        const card = document.createElement('div');
+        card.className = 'slot-item';
+
+        const imgArea = document.createElement('div');
+        imgArea.className = 'slot-item-img';
+        if (opt.img) {
+          imgArea.classList.add('has-img');
+          imgArea.style.backgroundImage = `url(${opt.img})`;
+        } else {
+          imgArea.style.background = GRADIENTS[i % GRADIENTS.length];
+          const emoji = document.createElement('span');
+          emoji.textContent = getEmoji(opt.name);
+          imgArea.appendChild(emoji);
+        }
+
+        const info = document.createElement('div');
+        info.className = 'slot-item-info';
+        const catIcon = document.createElement('span'); catIcon.className = 'item-cat'; catIcon.textContent = cat.icon;
+        const lbl = document.createElement('span'); lbl.className = 'item-label'; lbl.textContent = opt.name;
+        const menuBtn = document.createElement('button');
+        menuBtn.className = 'item-menu-btn';
+        menuBtn.dataset.optIdx = String(i);
+        menuBtn.title = '查看菜單';
+        menuBtn.textContent = '📋';
+        info.append(catIcon, lbl, menuBtn);
+
+        card.append(imgArea, info);
+        el.appendChild(card);
+      });
+    }
+  }
+
+  function spin() {
+    if (isSpinning) return;
+    isSpinning = true;
+    const cat = CATEGORIES[activeCategory];
+    const opts = cat.options, n = opts.length;
+
+    if (needsReset) {
+      currentC  = 35 * n + lastWinIndex;
+      currentTY = CENTER_TOP - currentC * STRIDE;
+      stripEl().style.transform = `translateY(${currentTY}px)`;
+      needsReset = false;
+    }
+
+    const winIndex   = Math.floor(Math.random() * n);
+    document.getElementById('spinBtn').disabled = true;
+    document.getElementById('result').textContent = '🌀 轉轉轉中⋯';
+
+    const fullRounds = 5 + Math.floor(Math.random() * 4);
+    const mod        = currentC % n;
+    const stepsBack  = (mod - winIndex + n) % n || n;
+    const destC      = currentC - (fullRounds * n + stepsBack);
+    const destTY     = CENTER_TOP - destC * STRIDE;
+    const duration   = 3500 + Math.random() * 1200;
+    const startTY    = currentTY, startTime = performance.now();
+    const easeOut    = t => 1 - Math.pow(1 - t, 4);
+
+    requestAnimationFrame(function frame(now) {
+      const t = Math.min((now - startTime) / duration, 1);
+      stripEl().style.transform = `translateY(${startTY + (destTY - startTY) * easeOut(t)}px)`;
+      if (t < 1) { requestAnimationFrame(frame); }
+      else { currentC = destC; currentTY = destTY; finishSpin(opts, winIndex, destC); }
+    });
+  }
+
+  function finishSpin(opts, winIndex, destC) {
+    lastWinIndex = winIndex; needsReset = true;
+    const cards = stripEl().children;
+    let f = 0;
+    const iv = setInterval(() => {
+      const card = cards[destC];
+      if (card) card.style.filter = f % 2 === 0 ? 'brightness(1.25) saturate(1.15)' : 'brightness(1)';
+      f++;
+      if (f >= 8) {
+        clearInterval(iv);
+        if (cards[destC]) cards[destC].style.filter = '';
+        document.getElementById('result').textContent = `🎉 今天吃：${opts[winIndex].name}！`;
+        isSpinning = false;
+        document.getElementById('spinBtn').disabled = false;
+      }
+    }, 120);
+  }
+
+  /* ── Init ── */
+  renderTabs(); renderOptions(); updatePanel(); initSlot();
+
+  // 事件委派：點 📋 開菜單（strip 會重建，用 slot-window 做委派根）
+  // 轉盤上的 📋 → 唯讀瀏覽
+  document.getElementById('slotStrip').addEventListener('click', e => {
+    const btn = e.target.closest('.item-menu-btn');
+    if (!btn) return;
+    e.stopPropagation();
+    openMenuModal(parseInt(btn.dataset.optIdx, 10), false);
+  });
+</script>
+</body>
+</html>
