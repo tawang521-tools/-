@@ -414,6 +414,35 @@
     }
     .menu-footer-btn:hover { background: var(--peach); color: var(--text); }
 
+    /* ── Token modal ── */
+    .token-modal {
+      position: fixed; inset: 0; z-index: 400;
+      background: rgba(0,0,0,0.6);
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+    .token-modal.hidden { display: none; }
+    .token-box {
+      background: #fff; border-radius: 22px; padding: 28px 24px;
+      width: 100%; max-width: 380px;
+      display: flex; flex-direction: column; gap: 14px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .token-box h2 { font-size: 1rem; font-weight: 900; color: var(--text); }
+    .token-box p  { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
+    .token-inp {
+      width: 100%; padding: 10px 12px; border-radius: 10px;
+      border: 1.5px solid var(--border); font-size: 0.82rem;
+      font-family: monospace; outline: none; color: var(--text);
+    }
+    .token-inp:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(245,166,35,0.12); }
+    .token-confirm-btn {
+      width: 100%; padding: 10px; border-radius: 10px; border: none;
+      background: linear-gradient(135deg,#f97316,#f5a623); color: #fff;
+      font-family: inherit; font-size: 0.9rem; font-weight: 700;
+      cursor: pointer; box-shadow: 0 3px 0 #c8600a;
+    }
+    .token-confirm-btn:hover { transform: translateY(-1px); }
+
     /* read-only menu item row */
     .menu-view-row {
       display: flex; align-items: center; gap: 8px;
@@ -681,6 +710,16 @@
 
   <input type="file" id="imgPicker" accept="image/*" style="display:none" />
   <input type="file" id="menuImgPicker" accept="image/*" multiple style="display:none" />
+
+  <!-- ── Token modal ── -->
+  <div class="token-modal hidden" id="tokenModal">
+    <div class="token-box">
+      <h2>🔑 輸入存取金鑰</h2>
+      <p>首次在此裝置編輯需要輸入 GitHub Token，輸入後會自動記住，之後不需重複輸入。</p>
+      <input class="token-inp" id="tokenInp" type="password" placeholder="貼上 ghp_... 開頭的 Token" />
+      <button class="token-confirm-btn" onclick="confirmToken()">確認並開始編輯</button>
+    </div>
+  </div>
 
   <!-- ── Image lightbox ── -->
   <div class="img-lightbox hidden" id="imgLightbox">
@@ -1380,13 +1419,25 @@
     if (pw === null) return;
     if (pw !== EDIT_PASSWORD) { alert('密碼錯誤！'); return; }
 
-    // 若此裝置尚未儲存 token，要求輸入一次
     if (!getToken()) {
-      const t = prompt('首次在此裝置編輯，請貼上你的 GitHub Token（之後不需重複輸入）：');
-      if (!t) { alert('未輸入 Token，無法儲存設定'); return; }
-      setToken(t.trim());
+      // 顯示自訂 Token 輸入視窗，避免瀏覽器封鎖第二個 prompt
+      document.getElementById('tokenInp').value = '';
+      document.getElementById('tokenModal').classList.remove('hidden');
+      return;
     }
 
+    activateEdit();
+  }
+
+  function confirmToken() {
+    const t = document.getElementById('tokenInp').value.trim();
+    if (!t) { alert('請輸入 Token'); return; }
+    setToken(t);
+    document.getElementById('tokenModal').classList.add('hidden');
+    activateEdit();
+  }
+
+  function activateEdit() {
     isEditing = true;
     document.getElementById('optionsCard').classList.add('editing');
     document.getElementById('editToggleBtn').classList.add('active');
