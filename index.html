@@ -414,34 +414,35 @@
     }
     .menu-footer-btn:hover { background: var(--peach); color: var(--text); }
 
-    /* ── Token modal ── */
-    .token-modal {
+    /* ── Password / Token modal (shared styles) ── */
+    .pw-modal, .token-modal {
       position: fixed; inset: 0; z-index: 400;
       background: rgba(0,0,0,0.6);
       display: flex; align-items: center; justify-content: center; padding: 20px;
     }
-    .token-modal.hidden { display: none; }
-    .token-box {
+    .pw-modal.hidden, .token-modal.hidden { display: none; }
+    .pw-box, .token-box {
       background: #fff; border-radius: 22px; padding: 28px 24px;
       width: 100%; max-width: 380px;
       display: flex; flex-direction: column; gap: 14px;
       box-shadow: 0 20px 60px rgba(0,0,0,0.3);
     }
-    .token-box h2 { font-size: 1rem; font-weight: 900; color: var(--text); }
-    .token-box p  { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
-    .token-inp {
+    .pw-box h2, .token-box h2 { font-size: 1rem; font-weight: 900; color: var(--text); }
+    .pw-box p,  .token-box p  { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
+    .pw-inp, .token-inp {
       width: 100%; padding: 10px 12px; border-radius: 10px;
-      border: 1.5px solid var(--border); font-size: 0.82rem;
-      font-family: monospace; outline: none; color: var(--text);
+      border: 1.5px solid var(--border); font-size: 0.88rem;
+      font-family: inherit; outline: none; color: var(--text);
     }
-    .token-inp:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(245,166,35,0.12); }
-    .token-confirm-btn {
+    .token-inp { font-family: monospace; font-size: 0.82rem; }
+    .pw-inp:focus, .token-inp:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(245,166,35,0.12); }
+    .pw-confirm-btn, .token-confirm-btn {
       width: 100%; padding: 10px; border-radius: 10px; border: none;
       background: linear-gradient(135deg,#f97316,#f5a623); color: #fff;
       font-family: inherit; font-size: 0.9rem; font-weight: 700;
       cursor: pointer; box-shadow: 0 3px 0 #c8600a;
     }
-    .token-confirm-btn:hover { transform: translateY(-1px); }
+    .pw-confirm-btn:hover, .token-confirm-btn:hover { transform: translateY(-1px); }
 
     /* read-only menu item row */
     .menu-view-row {
@@ -710,6 +711,15 @@
 
   <input type="file" id="imgPicker" accept="image/*" style="display:none" />
   <input type="file" id="menuImgPicker" accept="image/*" multiple style="display:none" />
+
+  <!-- ── Password modal ── -->
+  <div class="pw-modal hidden" id="pwModal">
+    <div class="pw-box">
+      <h2>🔒 請輸入編輯密碼</h2>
+      <input class="pw-inp" id="pwInp" type="password" placeholder="輸入密碼" />
+      <button class="pw-confirm-btn" onclick="confirmPw()">確認</button>
+    </div>
+  </div>
 
   <!-- ── Token modal ── -->
   <div class="token-modal hidden" id="tokenModal">
@@ -1415,14 +1425,21 @@
      OPTIONS PANEL
   ════════════════════════════════════════ */
   function toggleEdit() {
-    const pw = prompt('請輸入編輯密碼：');
-    if (pw === null) return;
+    // 用自訂 modal 取代 prompt()，避免瀏覽器封鎖
+    document.getElementById('pwInp').value = '';
+    document.getElementById('pwModal').classList.remove('hidden');
+    setTimeout(() => document.getElementById('pwInp').focus(), 50);
+  }
+
+  function confirmPw() {
+    const pw = document.getElementById('pwInp').value;
+    document.getElementById('pwModal').classList.add('hidden');
     if (pw !== EDIT_PASSWORD) { alert('密碼錯誤！'); return; }
 
     if (!getToken()) {
-      // 顯示自訂 Token 輸入視窗，避免瀏覽器封鎖第二個 prompt
       document.getElementById('tokenInp').value = '';
       document.getElementById('tokenModal').classList.remove('hidden');
+      setTimeout(() => document.getElementById('tokenInp').focus(), 50);
       return;
     }
 
@@ -1614,6 +1631,10 @@
       }
     }, 120);
   }
+
+  /* ── Enter key for modals ── */
+  document.getElementById('pwInp').addEventListener('keydown', e => { if (e.key === 'Enter') confirmPw(); });
+  document.getElementById('tokenInp').addEventListener('keydown', e => { if (e.key === 'Enter') confirmToken(); });
 
   /* ── Init ── */
   loadFromGist();
