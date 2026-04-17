@@ -716,7 +716,7 @@
   <div class="pw-modal hidden" id="pwModal">
     <div class="pw-box">
       <h2>🔒 請輸入編輯密碼</h2>
-      <input class="pw-inp" id="pwInp" type="password" placeholder="輸入密碼" />
+      <input class="pw-inp" id="pwInp" type="password" placeholder="輸入密碼" autocomplete="off" />
       <button class="pw-confirm-btn" onclick="confirmPw()">確認</button>
     </div>
   </div>
@@ -726,7 +726,7 @@
     <div class="token-box">
       <h2>🔑 輸入存取金鑰</h2>
       <p>首次在此裝置編輯需要輸入 GitHub Token，輸入後會自動記住，之後不需重複輸入。</p>
-      <input class="token-inp" id="tokenInp" type="password" placeholder="貼上 ghp_... 開頭的 Token" />
+      <input class="token-inp" id="tokenInp" type="password" placeholder="貼上 ghp_... 開頭的 Token" autocomplete="off" />
       <button class="token-confirm-btn" onclick="confirmToken()">確認並開始編輯</button>
     </div>
   </div>
