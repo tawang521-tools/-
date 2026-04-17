@@ -70,28 +70,68 @@
       outline: none; min-width: 3em; max-width: 140px; padding: 0 2px;
     }
     .pill-name-inp::placeholder { color: rgba(255,255,255,0.55); }
-    .pill-del-btn {
-      background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.3);
-      color: #fff; border-radius: 50%; width: 18px; height: 18px;
-      cursor: pointer; font-size: 0.7rem; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-      transition: all 0.15s; padding: 0;
+    /* ── Delete-category modal ── */
+    .delcat-modal {
+      position: fixed; inset: 0; z-index: 400;
+      background: rgba(0,0,0,0.6);
+      display: flex; align-items: center; justify-content: center; padding: 20px;
     }
-    .pill-del-btn:hover:not(:disabled) { background: rgba(255,80,80,0.45); border-color: rgba(255,80,80,0.5); }
+    .delcat-modal.hidden { display: none; }
+    .delcat-box {
+      background: #fff; border-radius: 22px; padding: 24px;
+      width: 100%; max-width: 360px;
+      display: flex; flex-direction: column; gap: 14px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .delcat-box h2 { font-size: 1rem; font-weight: 900; color: var(--text); }
+    .delcat-box p  { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
+    .delcat-list { display: flex; flex-direction: column; gap: 8px; }
+    .delcat-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 12px;
+      border: 1.5px solid var(--border); background: #fdf9f5;
+    }
+    .delcat-icon { font-size: 1.1rem; flex-shrink: 0; }
+    .delcat-name { flex: 1; font-size: 0.9rem; font-weight: 700; color: var(--text); }
+    .delcat-btn {
+      background: #fff0f0; border: 1.5px solid #ffd5d5; color: #e08080;
+      border-radius: 8px; padding: 5px 12px; cursor: pointer;
+      font-size: 0.8rem; font-weight: 700; font-family: inherit;
+      transition: all 0.15s; flex-shrink: 0;
+    }
+    .delcat-btn:hover { background: #ffe0e0; border-color: #ffb8b8; color: #c05050; }
+    .delcat-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .delcat-cancel {
+      width: 100%; padding: 9px; border-radius: 10px;
+      border: 1.5px solid var(--border); background: #fdf9f5;
+      color: var(--muted); font-family: inherit; font-size: 0.88rem;
+      font-weight: 700; cursor: pointer; transition: all 0.15s;
+    }
+    .delcat-cancel:hover { background: var(--peach); color: var(--text); }
+
+    /* pill delete button */
+    .pill-del-btn {
+      width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+      background: rgba(255,255,255,0.25); border: 1.5px solid rgba(255,255,255,0.5);
+      color: #fff; font-size: 0.72rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s; padding: 0; line-height: 1;
+    }
+    .pill-del-btn:hover:not(:disabled) { background: rgba(220,50,50,0.55); border-color: rgba(255,120,120,0.7); }
     .pill-del-btn:disabled { opacity: 0.25; cursor: not-allowed; }
 
-    /* add-category pill */
-    .cat-pill-add {
-      display: flex; align-items: center; gap: 4px;
-      padding: 8px 16px; border-radius: 50px;
-      border: 2px dashed var(--border); background: transparent;
-      color: var(--muted); font-size: 0.85rem; font-weight: 700;
-      cursor: pointer; font-family: inherit; transition: all 0.18s;
+    /* ── Category action buttons ── */
+    .cat-actions { display: flex; gap: 6px; align-items: center; }
+    .cat-action-btn {
+      width: 34px; height: 34px; border-radius: 50%;
+      border: 2px solid var(--border); background: var(--card);
+      color: var(--muted); font-size: 0.9rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all 0.18s; box-shadow: 0 2px 8px var(--shadow);
+      font-family: inherit; flex-shrink: 0;
     }
-    .cat-pill-add:hover {
-      border-color: var(--orange); color: var(--orange2);
-      background: rgba(255,230,200,0.2); transform: translateY(-1px);
-    }
+    .cat-action-btn:hover { border-color: var(--orange); color: var(--orange2); transform: translateY(-1px); }
+    .cat-action-btn.active { background: var(--peach); border-color: var(--orange); color: var(--orange2); }
 
     /* ── Main layout ── */
     .main { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; align-items: flex-start; width: 100%; max-width: 880px; }
@@ -712,6 +752,16 @@
   <input type="file" id="imgPicker" accept="image/*" style="display:none" />
   <input type="file" id="menuImgPicker" accept="image/*" multiple style="display:none" />
 
+  <!-- ── Delete category modal ── -->
+  <div class="delcat-modal hidden" id="delCatModal">
+    <div class="delcat-box">
+      <h2>🗑️ 刪除場合</h2>
+      <p>選擇要刪除的場合，此操作無法復原。</p>
+      <div class="delcat-list" id="delCatList"></div>
+      <button class="delcat-cancel" onclick="closeDelCatModal()">取消</button>
+    </div>
+  </div>
+
   <!-- ── Password modal ── -->
   <div class="pw-modal hidden" id="pwModal">
     <div class="pw-box">
@@ -861,7 +911,7 @@
   }
 
   /* ── App state ── */
-  let activeCategory = 0, isEditing = false, isSpinning = false;
+  let activeCategory = 0, isEditing = false, isSpinning = false, isCatNameEditing = false;
   let currentC = 0, currentTY = 0, needsReset = false, lastWinIndex = 0;
   let pendingPhoto = null;   // { catIdx, optIdx }
 
@@ -1326,55 +1376,90 @@
       pill.dataset.id = cat.id;
 
       if (i === activeCategory) {
-        // icon: click to cycle through presets
         const iconBtn = document.createElement('button');
         iconBtn.className = 'pill-icon-btn';
         iconBtn.textContent = cat.icon;
-        iconBtn.title = '點擊換 icon';
-        iconBtn.onclick = e => {
-          e.stopPropagation();
-          const idx = PRESET_ICONS.indexOf(cat.icon);
-          cat.icon = PRESET_ICONS[(idx + 1) % PRESET_ICONS.length];
-          renderTabs(); updatePanel(); buildStrip();
-        };
 
-        // name: inline editable input
-        const nameInp = document.createElement('input');
-        nameInp.className = 'pill-name-inp';
-        nameInp.type = 'text';
-        nameInp.value = cat.name;
-        nameInp.placeholder = '場合名稱';
-        nameInp.size = Math.max(4, cat.name.length);   // size 單位是字元數，中文也能正確撐開
-        nameInp.onclick = e => e.stopPropagation();
-        nameInp.addEventListener('input', e => {
-          cat.name = e.target.value;
-          nameInp.size = Math.max(4, e.target.value.length);
-          updatePanel();
-        });
+        if (isCatNameEditing) {
+          iconBtn.title = '點擊換 icon';
+          iconBtn.onclick = e => {
+            e.stopPropagation();
+            const idx = PRESET_ICONS.indexOf(cat.icon);
+            cat.icon = PRESET_ICONS[(idx + 1) % PRESET_ICONS.length];
+            renderTabs(); updatePanel(); buildStrip();
+          };
+          const nameInp = document.createElement('input');
+          nameInp.className = 'pill-name-inp';
+          nameInp.type = 'text';
+          nameInp.value = cat.name;
+          nameInp.placeholder = '場合名稱';
+          nameInp.size = Math.max(4, cat.name.length);
+          nameInp.onclick = e => e.stopPropagation();
+          nameInp.addEventListener('input', e => {
+            cat.name = e.target.value;
+            nameInp.size = Math.max(4, e.target.value.length);
+            updatePanel();
+          });
 
-        // delete button（active pill 不顯示數量徽章，已在選項面板可見）
-        const delBtn = document.createElement('button');
-        delBtn.className = 'pill-del-btn';
-        delBtn.textContent = '×';
-        delBtn.title = '刪除此場合';
-        delBtn.disabled = CATEGORIES.length <= 1;
-        delBtn.onclick = e => { e.stopPropagation(); deleteCategory(i); };
+          const delBtn = document.createElement('button');
+          delBtn.className = 'pill-del-btn';
+          delBtn.textContent = '×';
+          delBtn.title = '刪除此場合';
+          delBtn.disabled = CATEGORIES.length <= 1;
+          delBtn.onclick = e => { e.stopPropagation(); deleteCategory(i); };
 
-        pill.append(iconBtn, nameInp, delBtn);
+          pill.append(iconBtn, nameInp, delBtn);
+          setTimeout(() => nameInp.focus(), 30);
+        } else {
+          const nameSpan = document.createElement('span');
+          nameSpan.textContent = cat.name;
+          pill.append(iconBtn, nameSpan);
+        }
       } else {
-        pill.innerHTML = `<span>${cat.icon}</span>${cat.name}<span class="pill-count">${cat.options.length}</span>`;
-        pill.onclick = () => selectCategory(i);
+        const icon = document.createElement('span');
+        icon.textContent = cat.icon;
+        const name = document.createTextNode(cat.name);
+        pill.append(icon, name);
+
+        if (isCatNameEditing) {
+          const delBtn = document.createElement('button');
+          delBtn.className = 'pill-del-btn';
+          delBtn.textContent = '×';
+          delBtn.title = '刪除此場合';
+          delBtn.disabled = CATEGORIES.length <= 1;
+          delBtn.onclick = e => { e.stopPropagation(); deleteCategory(i); };
+          pill.appendChild(delBtn);
+        } else {
+          const count = document.createElement('span');
+          count.className = 'pill-count';
+          count.textContent = cat.options.length;
+          pill.appendChild(count);
+          pill.onclick = () => selectCategory(i);
+        }
       }
 
       el.appendChild(pill);
     });
 
-    // ＋ 新增場合
+    // 兩個 icon 操作按鈕
+    const actions = document.createElement('div');
+    actions.className = 'cat-actions';
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'cat-action-btn' + (isCatNameEditing ? ' active' : '');
+    editBtn.title = isCatNameEditing ? '完成編輯' : '編輯 / 刪除場合';
+    editBtn.textContent = isCatNameEditing ? '✓' : '✏️';
+    editBtn.onclick = () => { isCatNameEditing = !isCatNameEditing; renderTabs(); };
+
     const addBtn = document.createElement('button');
-    addBtn.className = 'cat-pill-add';
-    addBtn.textContent = '＋ 新增場合';
+    addBtn.className = 'cat-action-btn';
+    addBtn.title = '新增場合';
+    addBtn.textContent = '＋';
+    addBtn.style.fontWeight = '900';
     addBtn.onclick = addCategory;
-    el.appendChild(addBtn);
+
+    actions.append(editBtn, addBtn);
+    el.appendChild(actions);
   }
 
   function addCategory() {
@@ -1399,6 +1484,34 @@
     }, 30);
   }
 
+  function openDelCatModal() {
+    const list = document.getElementById('delCatList');
+    list.innerHTML = '';
+    CATEGORIES.forEach((cat, i) => {
+      const row = document.createElement('div');
+      row.className = 'delcat-row';
+      const icon = document.createElement('span'); icon.className = 'delcat-icon'; icon.textContent = cat.icon;
+      const name = document.createElement('span'); name.className = 'delcat-name'; name.textContent = cat.name;
+      const btn = document.createElement('button');
+      btn.className = 'delcat-btn';
+      btn.textContent = '刪除';
+      btn.disabled = CATEGORIES.length <= 1;
+      btn.title = CATEGORIES.length <= 1 ? '至少保留一個場合' : '';
+      btn.onclick = () => {
+        if (!confirm(`確定要刪除「${cat.name}」嗎？`)) return;
+        closeDelCatModal();
+        deleteCategory(i);
+      };
+      row.append(icon, name, btn);
+      list.appendChild(row);
+    });
+    document.getElementById('delCatModal').classList.remove('hidden');
+  }
+
+  function closeDelCatModal() {
+    document.getElementById('delCatModal').classList.add('hidden');
+  }
+
   function deleteCategory(i) {
     if (CATEGORIES.length <= 1) return;
     CATEGORIES.splice(i, 1);
@@ -1413,7 +1526,7 @@
 
   function selectCategory(i) {
     if (isSpinning) return;
-    activeCategory = i; isEditing = false; needsReset = false;
+    activeCategory = i; isEditing = false; needsReset = false; isCatNameEditing = false;
     document.getElementById('optionsCard').classList.remove('editing');
     document.getElementById('editToggleBtn').classList.remove('active');
     renderTabs(); renderOptions(); updatePanel(); initSlot();
