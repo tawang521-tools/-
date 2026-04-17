@@ -848,9 +848,15 @@
           files: { [GIST_FILE]: { content: JSON.stringify(CATEGORIES) } }
         })
       });
-      if (!res.ok) throw new Error();
+      if (res.status === 401 || res.status === 403) {
+        // Token 無效，清除並要求重新輸入
+        localStorage.removeItem('zsm_token');
+        alert('存取金鑰已失效，請重新點擊編輯按鈕並輸入新的 Token。');
+        return;
+      }
+      if (!res.ok) throw new Error('save failed');
     } catch(e) {
-      alert('儲存失敗，請檢查網路連線或重新輸入 token');
+      if (e.message !== 'save failed') alert('儲存失敗，請檢查網路連線');
     }
   }
 
