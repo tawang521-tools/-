@@ -47,10 +47,7 @@
       box-shadow: 0 2px 8px var(--shadow);
     }
     .cat-pill:hover { border-color: var(--orange); color: var(--orange2); transform: translateY(-1px); }
-    .cat-pill.active { border-color: transparent; color: #fff; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(249,115,22,0.35); }
-    .cat-pill[data-id="lunch"].active   { background: linear-gradient(135deg,#78bce8,#4fa8d8); }
-    .cat-pill[data-id="dinner"].active  { background: linear-gradient(135deg,#7ecb8f,#4cb86a); }
-    .cat-pill[data-id="holiday"].active { background: linear-gradient(135deg,#f97316,#f5a623); }
+    .cat-pill.active { border-color: transparent; color: #fff; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.18); }
     .cat-pill .pill-count {
       background: var(--peach); color: var(--orange);
       border-radius: 20px; padding: 1px 7px; font-size: 0.72rem; font-weight: 700;
@@ -119,6 +116,23 @@
     }
     .pill-del-btn:hover:not(:disabled) { background: rgba(220,50,50,0.55); border-color: rgba(255,120,120,0.7); }
     .pill-del-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+
+    /* ── Icon picker popup ── */
+    .icon-picker {
+      position: fixed; z-index: 500;
+      background: #fff; border-radius: 16px; padding: 10px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.2); border: 1.5px solid var(--border);
+      display: grid; grid-template-columns: repeat(7, 36px); gap: 4px;
+    }
+    .icon-picker.hidden { display: none; }
+    .icon-opt {
+      width: 36px; height: 36px; border-radius: 8px; font-size: 1.1rem;
+      border: 1.5px solid transparent; background: transparent;
+      cursor: pointer; transition: all 0.13s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .icon-opt:hover   { background: var(--peach); border-color: var(--orange); }
+    .icon-opt.selected { background: var(--peach2); border-color: var(--orange2); }
 
     /* ── Category action buttons ── */
     .cat-actions { display: flex; gap: 6px; align-items: center; }
@@ -752,6 +766,9 @@
   <input type="file" id="imgPicker" accept="image/*" style="display:none" />
   <input type="file" id="menuImgPicker" accept="image/*" multiple style="display:none" />
 
+  <!-- ── Icon picker ── -->
+  <div class="icon-picker hidden" id="iconPicker"></div>
+
   <!-- ── Delete category modal ── -->
   <div class="delcat-modal hidden" id="delCatModal">
     <div class="delcat-box">
@@ -1376,17 +1393,18 @@
       pill.dataset.id = cat.id;
 
       if (i === activeCategory) {
+        // 套用場合色彩到 active pill
+        pill.style.background = cat.dotColor;
+
         const iconBtn = document.createElement('button');
         iconBtn.className = 'pill-icon-btn';
         iconBtn.textContent = cat.icon;
 
         if (isCatNameEditing) {
-          iconBtn.title = '點擊換 icon';
+          iconBtn.title = '點擊選擇 icon';
           iconBtn.onclick = e => {
             e.stopPropagation();
-            const idx = PRESET_ICONS.indexOf(cat.icon);
-            cat.icon = PRESET_ICONS[(idx + 1) % PRESET_ICONS.length];
-            renderTabs(); updatePanel(); buildStrip();
+            openIconPicker(i, iconBtn);
           };
           const nameInp = document.createElement('input');
           nameInp.className = 'pill-name-inp';
@@ -1483,6 +1501,39 @@
       if (inp) { inp.focus(); inp.select(); }
     }, 30);
   }
+
+  /* ── Icon picker ── */
+  let iconPickerCatIdx = null;
+
+  function openIconPicker(catIdx, btnEl) {
+    iconPickerCatIdx = catIdx;
+    const picker = document.getElementById('iconPicker');
+    picker.innerHTML = '';
+    PRESET_ICONS.forEach(icon => {
+      const btn = document.createElement('button');
+      btn.className = 'icon-opt' + (icon === CATEGORIES[catIdx].icon ? ' selected' : '');
+      btn.textContent = icon;
+      btn.onclick = e => { e.stopPropagation(); selectIcon(icon); };
+      picker.appendChild(btn);
+    });
+    const rect = btnEl.getBoundingClientRect();
+    picker.style.top  = (rect.bottom + 8) + 'px';
+    picker.style.left = Math.min(rect.left, window.innerWidth - 280) + 'px';
+    picker.classList.remove('hidden');
+  }
+
+  function selectIcon(icon) {
+    CATEGORIES[iconPickerCatIdx].icon = icon;
+    document.getElementById('iconPicker').classList.add('hidden');
+    renderTabs(); updatePanel(); buildStrip();
+  }
+
+  document.addEventListener('click', e => {
+    const picker = document.getElementById('iconPicker');
+    if (!picker.classList.contains('hidden') && !picker.contains(e.target)) {
+      picker.classList.add('hidden');
+    }
+  });
 
   function openDelCatModal() {
     const list = document.getElementById('delCatList');
