@@ -1618,7 +1618,7 @@
 
       /* clear image */
       const clr = document.createElement('button');
-      clr.className = 'clr-btn'; clr.title = '移除圖片'; clr.textContent = '✕';
+      clr.className = 'clr-btn'; clr.title = '移除圖片'; clr.textContent = '🖼️';
       clr.onclick = () => clearImage(activeCategory, i);
 
       /* menu edit button */
@@ -1630,7 +1630,7 @@
 
       /* delete option */
       const del = document.createElement('button');
-      del.className = 'del-btn'; del.textContent = '×';
+      del.className = 'del-btn'; del.textContent = '🗑️';
       del.onclick = () => {
         if (cat.options.length > 2) { cat.options.splice(i, 1); renderTabs(); renderOptions(); }
       };
